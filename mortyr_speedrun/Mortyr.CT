@@ -126,6 +126,52 @@ xor eax,edx
 //Alt: db 2B 01 99 33 C2
 </AssemblerScript>
     </CheatEntry>
+    <CheatEntry>
+      <ID>3</ID>
+      <Description>"Crash4"</Description>
+      <LastState/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>[ENABLE]
+//code from here to '[DISABLE]' will be used to enable the cheat
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+
+newmem: //this is allocated memory, you have read,write,execute access
+//place your code here
+push eax
+add eax,edx
+add eax,38
+cmp eax,400000
+pop eax
+jl check
+
+originalcode:
+mov eax,[eax+edx+38]
+check:
+test eax,eax
+
+exit:
+jmp returnhere
+
+"Mortyr.exe"+4AF51:
+jmp newmem
+nop
+returnhere:
+
+
+ 
+ 
+[DISABLE]
+//code from here till the end of the code will be used to disable the cheat
+dealloc(newmem)
+"Mortyr.exe"+4AF51:
+mov eax,[eax+edx+38]
+test eax,eax
+//Alt: db 8B 44 10 38 85 C0
+</AssemblerScript>
+    </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
 </CheatTable>
