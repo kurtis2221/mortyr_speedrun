@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="34">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1</ID>
+      <Description>"Crash1"</Description>
+      <LastState/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>[ENABLE]
+//code from here to '[DISABLE]' will be used to enable the cheat
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+
+newmem: //this is allocated memory, you have read,write,execute access
+//place your code here
+cmp ecx, 1041EFDA
+jge 004630AC
+
+originalcode:
+mov eax,[ecx]
+sub eax,esi
+cdq 
+
+exit:
+jmp returnhere
+
+"Mortyr.EXE"+6307C:
+jmp newmem
+returnhere:
+
+
+ 
+ 
+[DISABLE]
+//code from here till the end of the code will be used to disable the cheat
+dealloc(newmem)
+"Mortyr.EXE"+6307C:
+mov eax,[ecx]
+sub eax,esi
+cdq 
+//Alt: db 8B 01 2B C6 99
+</AssemblerScript>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>0</ID>
+      <Description>"Crash2"</Description>
+      <LastState/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>[ENABLE]
+//code from here to '[DISABLE]' will be used to enable the cheat
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+
+newmem: //this is allocated memory, you have read,write,execute access
+//place your code here
+cmp edi, 1041EFDA
+jge 00447EB0
+
+originalcode:
+mov ax,[edi]
+test ax,ax
+
+exit:
+jmp returnhere
+
+"Mortyr.EXE"+47E5F:
+jmp newmem
+nop
+returnhere:
+
+
+ 
+ 
+[DISABLE]
+//code from here till the end of the code will be used to disable the cheat
+dealloc(newmem)
+"Mortyr.EXE"+47E5F:
+mov ax,[edi]
+test ax,ax
+//Alt: db 66 8B 07 66 85 C0
+</AssemblerScript>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>2</ID>
+      <Description>"Crash3"</Description>
+      <LastState/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>[ENABLE]
+//code from here to '[DISABLE]' will be used to enable the cheat
+alloc(newmem,2048)
+label(returnhere)
+label(originalcode)
+label(exit)
+
+newmem: //this is allocated memory, you have read,write,execute access
+//place your code here
+
+originalcode:
+cmp ecx, 1041EFDA
+jge 00447E17
+sub eax,[ecx]
+cdq 
+xor eax,edx
+
+exit:
+jmp returnhere
+
+"Mortyr.EXE"+47DE5:
+jmp newmem
+returnhere:
+
+
+ 
+ 
+[DISABLE]
+//code from here till the end of the code will be used to disable the cheat
+dealloc(newmem)
+"Mortyr.EXE"+47DE5:
+sub eax,[ecx]
+cdq 
+xor eax,edx
+//Alt: db 2B 01 99 33 C2
+</AssemblerScript>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+</CheatTable>
