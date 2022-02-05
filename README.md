@@ -1,10 +1,16 @@
 # Mortyr Speedrun Helper
 ## Info
 Simple tool that starts the game, then injects an address check before reading from the memory address
-If the address is invalid it skips some code.
-Used Visual C# 2008 Express.
+If the address is invalid it skips some code. Used Visual C# 2008 Express.
+
+Thanks to DVark09 for catching all error addresses:
+
+https://github.com/DVark09
+
 ## Usage
 Copy mortyr_speedrun.exe into your Mortyr game directory. Then run the exe.
 It only works with the EU/UK version of the game.
+
 CRC32: D6C082EA
+
 MD5: d7f09ae3e9d770a74df4d934e598b416
