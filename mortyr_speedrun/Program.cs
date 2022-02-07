@@ -170,21 +170,16 @@ namespace mortyr_speedrun
                 0x50, //push eax
                 0x01, 0xD0, //add eax,edx
                 0x83, 0xC0, 0x38, //add eax,38
-                0x51, //push ecx
-                0x50, //push eax
-                0xE8, 0x00, 0x00, 0x00, 0x00, //call memchk.checkaccess(int)
-                0x85, 0xC0, //test eax,eax
+                0x3D, 0x00, 0x00, 0x40, 0x00, //cmp eax,00400000
                 0x58, //pop eax
-                0x59, //pop ecx
-                0x58, //pop eax
-                0x74, 0x08, //je +0x08
+                0x7C, 0x08, //jl +0x08
                 0x0F, 0x1F, 0x40, 0x00, //nop dword ptr [eax+00]
                 0x8B, 0x44, 0x10, 0x38, //mov eax,[eax+edx+38]
                 0x85, 0xC0, //test eax,eax
                 0xE9, 0x00, 0x00, 0x00, 0x00 //jmp address
             };
-            InsertJMPAddress(crash_code, newmem, dllfunc, 9);
-            InsertJMPAddress(crash_code, newmem, address + (uint)crash_jmp.Length, 31);
+            InsertJMPAddress(crash_code, newmem, address + (uint)crash_jmp.Length, 25);
+            InsertUInt(crash_code, (uint)mem.Proc.MainModule.BaseAddress, 7);
             //Make writable protection
             mem.SetProtection(address, 0x100, Memory.Protection.PAGE_EXECUTE_READWRITE, out oldproct);
             //Write to memory
@@ -199,6 +194,13 @@ namespace mortyr_speedrun
         {
             byte[] jmp_addr = BitConverter.GetBytes(toaddress - (fromaddress + idx + 4));
             Array.Copy(jmp_addr, 0, code, idx, 4);
+        }
+
+        static void InsertUInt(byte[] code, uint val, uint idx)
+        {
+            if (val == 0) return;
+            byte[] tmp = BitConverter.GetBytes(val);
+            Array.Copy(tmp, 0, code, idx, 4);
         }
 
         static void MsgBox(string text)
