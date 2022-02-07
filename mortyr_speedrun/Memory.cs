@@ -7,6 +7,9 @@ namespace MemoryEdit
 {
     class Memory
     {
+        const string KERNEL32DLL = "kernel32.dll";
+        const string USER32DLL = "user32.dll";
+
         [StructLayout(LayoutKind.Sequential)]
         public struct MEMORY_BASIC_INFORMATION
         {
@@ -52,33 +55,7 @@ namespace MemoryEdit
             PAGE_WRITECOMBINE = 0x400
         }
 
-        [DllImport("kernel32.dll")]
-        static extern IntPtr OpenProcess(ProcessAccessFlags dwDesiredAccess, bool bInheritHandle,
-            uint dwProcessId);
-
-        [DllImport("kernel32.dll")]
-        static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
-            byte[] lpBuffer, UIntPtr nSize, uint lpNumberOfBytesWritten);
-        [DllImport("kernel32.dll")]
-        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
-            byte[] lpBuffer, UIntPtr nSize, uint lpNumberOfBytesWritten);
-
-        [DllImport("kernel32.dll")]
-        static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress,
-            out MEMORY_BASIC_INFORMATION lpBuffer, uint dwLength); 
-        [DllImport("kernel32.dll")]
-        static extern bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress,
-            uint dwSize, Protection flNewProtect, out uint lpflOldProtect);
-
-        [DllImport("kernel32.dll")]
-        static extern IntPtr CreateRemoteThread(IntPtr hProcess,
-           IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress,
-           IntPtr lpParameter, uint dwCreationFlags, out uint lpThreadId);
-        [DllImport("kernel32.dll")]
-        static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress,
-           uint dwSize, uint flAllocationType, uint flProtect);
-
-        /*public enum AllocationType : uint
+        public enum AllocationType : uint
         {
             Commit = 0x1000,
             Reserve = 0x2000,
@@ -89,19 +66,54 @@ namespace MemoryEdit
             TopDown = 0x100000,
             WriteWatch = 0x200000,
             LargePages = 0x20000000
-        }*/
+        }
 
-        [DllImport("kernel32.dll")]
+        [DllImport(KERNEL32DLL)]
+        static extern IntPtr OpenProcess(ProcessAccessFlags dwDesiredAccess, bool bInheritHandle,
+            uint dwProcessId);
+        [DllImport(KERNEL32DLL, SetLastError = true)]
+        public static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
+        [DllImport(KERNEL32DLL, SetLastError = true)]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [DllImport(KERNEL32DLL)]
+        static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
+            byte[] lpBuffer, UIntPtr nSize, uint lpNumberOfBytesWritten);
+        [DllImport(KERNEL32DLL)]
+        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
+            byte[] lpBuffer, UIntPtr nSize, uint lpNumberOfBytesWritten);
+
+        [DllImport(KERNEL32DLL)]
+        static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress,
+            out MEMORY_BASIC_INFORMATION lpBuffer, uint dwLength);
+        [DllImport(KERNEL32DLL)]
+        static extern bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress,
+            uint dwSize, Protection flNewProtect, out Protection lpflOldProtect);
+
+        [DllImport(KERNEL32DLL)]
+        static extern IntPtr CreateRemoteThread(IntPtr hProcess,
+            IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress,
+            IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);
+        [DllImport(KERNEL32DLL, SetLastError = true)]
+        static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
+
+        [DllImport(KERNEL32DLL)]
+        static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress,
+           uint dwSize, AllocationType flAllocationType, Protection flProtect);
+        [DllImport(KERNEL32DLL, SetLastError = true, ExactSpelling = true)]
+        static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, int dwSize, AllocationType dwFreeType);
+
+        [DllImport(KERNEL32DLL)]
         static extern bool CloseHandle(IntPtr hObject);
 
-        [DllImport("user32.dll")]
+        [DllImport(USER32DLL)]
         static extern IntPtr GetForegroundWindow();
-        [DllImport("user32.dll")]
+        [DllImport(USER32DLL)]
         static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        //Create handle
-        IntPtr Handle;
-        uint Pid;
+        public Process Proc;
+        public IntPtr Handle;
+        public uint Pid;
 
         public bool IsFocused()
         {
@@ -112,17 +124,17 @@ namespace MemoryEdit
 
         public bool Attach(string sprocess, ProcessAccessFlags access)
         {
-            //Get the specific process
             Process[] Processes = Process.GetProcessesByName(sprocess);
             if (Processes.Length < 1) return false;
-            Process nProcess = Processes[0];
-            Attach((uint)nProcess.Id, access);
+            Proc = Processes[0];
+            Attach((uint)Proc.Id, access);
             return true;
         }
 
         public bool Attach(uint pid, ProcessAccessFlags access)
         {
             Pid = pid;
+            if (Proc == null) Proc = Process.GetProcessById((int)pid);
             Handle = OpenProcess(access, false, Pid);
             return true;
         }
@@ -134,13 +146,10 @@ namespace MemoryEdit
         }
 
         //Memory reading
-
         //Byte array
         public byte[] ReadBytes(uint pointer, int blen)
         {
             byte[] bytes = new byte[blen];
-
-            //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)blen, 0);
             return bytes;
         }
@@ -149,8 +158,6 @@ namespace MemoryEdit
         public byte ReadByte(uint pointer)
         {
             byte[] bytes = new byte[1];
-
-            //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)1, 0);
             return bytes[0];
         }
@@ -159,8 +166,6 @@ namespace MemoryEdit
         public float ReadFloat(uint pointer)
         {
             byte[] bytes = new byte[4];
-
-            //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)4, 0);
             return BitConverter.ToSingle(bytes, 0);
         }
@@ -169,8 +174,6 @@ namespace MemoryEdit
         public double ReadDouble(uint pointer)
         {
             byte[] bytes = new byte[8];
-
-            //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)8, 0);
             return BitConverter.ToDouble(bytes, 0);
         }
@@ -179,8 +182,6 @@ namespace MemoryEdit
         public string ReadString(uint pointer, int blen)
         {
             byte[] bytes = new byte[blen];
-
-            //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)blen, 0);
             return BitConverter.ToString(bytes, 0);
         }
@@ -189,7 +190,6 @@ namespace MemoryEdit
         public int Read(uint pointer)
         {
             byte[] bytes = new byte[4];
-
             //Reading the specific address within the process
             ReadProcessMemory(Handle, (IntPtr)pointer, bytes, (UIntPtr)4, 0);
             //Return the result as 4 byte int
@@ -197,32 +197,26 @@ namespace MemoryEdit
         }
 
         //Memory writing
-
-        public void WriteBytes(uint pointer, byte[] Buffer, int blen)
+        public void WriteBytes(uint pointer, byte[] Buffer)
         {
-            WriteProcessMemory(Handle, (IntPtr)pointer, Buffer, (UIntPtr)blen, 0);
+            WriteProcessMemory(Handle, (IntPtr)pointer, Buffer, (UIntPtr)Buffer.Length, 0);
         }
 
         //Memory protection
-
-        public MEMORY_BASIC_INFORMATION GetProtection(uint pointer, uint length)
+        public bool GetProtection(uint pointer, uint length, out MEMORY_BASIC_INFORMATION lpBuffer)
         {
-            MEMORY_BASIC_INFORMATION lpBuffer;
-            VirtualQueryEx(Handle, (IntPtr)pointer, out lpBuffer, length);
-            return lpBuffer;
+            return VirtualQueryEx(Handle, (IntPtr)pointer, out lpBuffer, length) != 0;
         }
 
-        public bool SetProtection(uint dwAddress, uint dwSize, Protection flNewProtect, out uint lpflOldProtect)
+        public bool SetProtection(uint dwAddress, uint dwSize, Protection flNewProtect, out Protection lpflOldProtect)
         {
             return !VirtualProtectEx(Handle, (IntPtr)dwAddress, dwSize, flNewProtect, out lpflOldProtect);
         }
 
         //Calling functions
-
         public IntPtr ThreadCall(IntPtr address)
         {
-            uint tid;
-            return CreateRemoteThread(Handle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, out tid);
+            return CreateRemoteThread(Handle, IntPtr.Zero, 0, address, IntPtr.Zero, 0, IntPtr.Zero);
         }
 
         public void ThreadClose(IntPtr address)
@@ -230,11 +224,43 @@ namespace MemoryEdit
             CloseHandle(address);
         }
 
-        //Allocate memory
+        //Get module inside of process
+        public IntPtr GetModule(string module)
+        {
+            foreach (ProcessModule mod in Proc.Modules)
+            {
+                if (mod.ModuleName == module)
+                {
+                    return mod.BaseAddress;
+                }
+            }
+            return IntPtr.Zero;
+        }
 
+        //Allocate memory
         public IntPtr Allocate(uint length)
         {
-            return VirtualAllocEx(Handle, IntPtr.Zero, length, 0x1000, 0x40);
+            return VirtualAllocEx(Handle, IntPtr.Zero, length, AllocationType.Commit, Protection.PAGE_EXECUTE_READWRITE);
+        }
+
+        //Inject DLL
+        public void InjectDLL(string filename)
+        {
+            IntPtr address_module = GetModuleHandle(KERNEL32DLL);
+            if (address_module == IntPtr.Zero) throw new Exception("Injection - Failed to load: " + KERNEL32DLL);
+            IntPtr address_load = GetProcAddress(address_module, "LoadLibraryA");
+            if (address_load == IntPtr.Zero) throw new Exception("Injection - Failed to load function: LoadLibraryA");
+            byte[] bytes = Encoding.ASCII.GetBytes(filename);
+            IntPtr address_dll = VirtualAllocEx(Handle, IntPtr.Zero, (uint)filename.Length, AllocationType.Commit, Protection.PAGE_EXECUTE_READWRITE);
+            if (address_dll == IntPtr.Zero) throw new Exception("Injection - Failed to allocate memory.");
+            bool wr = WriteProcessMemory(Handle, address_dll, bytes, (UIntPtr)bytes.Length, 0);
+            if (!wr) throw new Exception("Injection - Failed to write memory.");
+            IntPtr thread = CreateRemoteThread(Handle, IntPtr.Zero, 0, address_load, address_dll, 0, IntPtr.Zero);
+            if (thread == IntPtr.Zero) throw new Exception("Injection - Failed to start remote thread.");
+            //Clean up, no need for exceptions
+            WaitForSingleObject(thread, 0xFFFFFFFF);
+            CloseHandle(thread);
+            VirtualFreeEx(Handle, address_dll, bytes.Length, AllocationType.Release);
         }
     }
 }
