@@ -160,14 +160,9 @@ newmem: //this is allocated memory, you have read,write,execute access
 push eax
 add eax,edx
 add eax,38
-push ecx
-push eax
-call 6E2F1000
-test eax,eax
+cmp eax,400000
 pop eax
-pop ecx
-pop eax
-jz check
+jl check
 
 originalcode:
 mov eax,[eax+edx+38]
